@@ -10,17 +10,18 @@ use std::time::SystemTime;
 // #[derive(Debug, Copy, Clone)]
 #[derive(Debug)]
 struct O_button{
-    b_down: bool, 
+    b_down: Option<bool>,
+    n_value: Option<u64>,
     s_name: String,
     n_bit: Option<u8>,
-    a_n_num: Option<Vec<u8>>, 
+    a_n_num: Option<Vec<u8>>,
     n_bit_offset: u32,
     n_bits: u32
 }
 // #[derive(Debug, Copy, Clone)]
 #[derive(Debug)]
 struct O_controller{
-    s_name: String, 
+    s_name: String,
     a_o_button: Vec<O_button>
 }
 
@@ -179,71 +180,97 @@ fn read_endpoint<T: UsbContext>(
 
 
     let mut o_controller_dualsense = O_controller{
-        s_name: String::from("dualsense"), 
+        s_name: String::from("dualsense"),
         a_o_button: vec![
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("triangle"),
                 n_bit: Some(3),
-                a_n_num: None, 
+                a_n_num: None,
                 n_bit_offset: 8*8+4,
                 n_bits:4
-            }, 
+            },
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("circle"),
                 n_bit: Some(2),
-                a_n_num: None, 
+                a_n_num: None,
                 n_bit_offset: 8*8+4,
                 n_bits:4
-            }, 
+            },
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("cross"),
                 n_bit: Some(1),
-                a_n_num: None, 
+                a_n_num: None,
                 n_bit_offset: 8*8+4,
                 n_bits:4
-            }, 
+            },
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("square"),
                 n_bit: Some(0),
-                a_n_num: None, 
+                a_n_num: None,
                 n_bit_offset: 8*8+4,
                 n_bits:4
-            }, 
+            },
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("arrow_up"),
                 n_bit: None,
-                a_n_num: Some(vec![ 0, 7, 1]), 
+                a_n_num: Some(vec![ 0, 7, 1]),
                 n_bit_offset: 8*8,
                 n_bits:4
-            }, 
+            },
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("arrow_right"),
                 n_bit: Some(2),
-                a_n_num: Some(vec![ 1, 2, 3]), 
+                a_n_num: Some(vec![ 1, 2, 3]),
                 n_bit_offset: 8*8,
                 n_bits:4
-            }, 
+            },
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("arrow_down"),
                 n_bit: Some(3),
-                a_n_num: Some(vec![ 3, 4, 5]), 
+                a_n_num: Some(vec![ 3, 4, 5]),
                 n_bit_offset: 8*8,
                 n_bits:4
-            }, 
+            },
             O_button{
-                b_down: false, 
+                b_down: Some(false),
+                n_value: None,
                 s_name: String::from("arrow_left"),
                 n_bit: Some(4),
-                a_n_num: Some(vec![ 5, 6, 7]), 
+                a_n_num: Some(vec![ 5, 6, 7]),
                 n_bit_offset: 8*8,
                 n_bits:4
+            },
+            O_button{
+                b_down: None,
+                n_value: Some(0),
+                s_name: String::from("L2"),
+                n_bit: None,
+                a_n_num: None,
+                n_bit_offset: 5*8,
+                n_bits:8
+            },
+            O_button{
+                b_down: None,
+                n_value: Some(0),
+                s_name: String::from("R2"),
+                n_bit: None,
+                a_n_num: None,
+                n_bit_offset: 6*8,
+                n_bits:8
             }
         ]
     };
@@ -264,79 +291,82 @@ fn read_endpoint<T: UsbContext>(
     loop{
         println!("________________________________________");
 
-        // match handle.read_interrupt(endpoint.address, &mut a_nu8, timeout) {
-        //     Ok(len) => {
-        //         let mut n_i = 0;
-        //         let mut n_bits_per_line = 8 * 8;
-        //         let mut s_line = String::from("");
-        //         while(n_i < len){
-        //             // if()
-        //             if(n_i % (n_bits_per_line/8) == 0){
-        //                 let mut n_byte = 0; 
-        //                 while(n_byte < (n_bits_per_line/8)){
-        //                     print!(" {:08b} ", &a_nu8[n_i+n_byte]);
-        //                     n_byte+=1;
-        //                 }
-        //                 println!(" {:?}", SystemTime::now());
-        //                 // println!("{}",s_line);
-        //                 // s_line = String::from("");
-        //                 // println!("")
-        //             }else{
-        //                 // s_line.push_str(&String::from(format!("{:#08b}", &buf[n_i])))
-        //                 // s_line.push_str(&String::from("asdf"));
-        //             }
-        //             // print!("flags: {:#08b}", &buf[n_i]);
-        //             n_i+=1;
-        //         }
-        //         // println!("flags: {:#018b}", flags);
-        //         // println!(" - read: {:?}", &buf[..len]);
-        //     }
-        //     Err(err) => println!("could not read from endpoint: {}", err),
-        // }
-        // // print!("{}[2J", 27 as char);
-
-
-        match handle.read_interrupt(
-            endpoint.address, 
-            &mut a_nu8, 
-            timeout
-        ){
-            Ok(len)=>{
-                let mut n_index_a_o_button = 0; 
-                while(n_index_a_o_button < o_controller_dualsense.a_o_button.len()){
-                    let o_button = &mut o_controller_dualsense.a_o_button[n_index_a_o_button];
-
-                    let n_byte_index = ((o_button.n_bit_offset) as f64 / 8 as f64) as u32;
-                    let n_bits_right_shift = o_button.n_bit_offset % 8;
-                    let n = a_nu8[n_byte_index as usize] >> n_bits_right_shift & (((2 as i32).pow(o_button.n_bits)-1) as u8);
-
-                    if(o_button.n_bit != None){
-                        o_button.b_down = (n & (((2 as i32).pow(o_button.n_bit.unwrap().into())) as u8)) != 0;
+        match handle.read_interrupt(endpoint.address, &mut a_nu8, timeout) {
+            Ok(len) => {
+                let mut n_i = 0;
+                let mut n_bits_per_line = 8 * 8;
+                let mut s_line = String::from("");
+                while(n_i < len){
+                    // if()
+                    if(n_i % (n_bits_per_line/8) == 0){
+                        let mut n_byte = 0;
+                        while(n_byte < (n_bits_per_line/8)){
+                            print!(" {:08b} ", &a_nu8[n_i+n_byte]);
+                            n_byte+=1;
+                        }
+                        println!(" {:?}", SystemTime::now());
+                        // println!("{}",s_line);
+                        // s_line = String::from("");
+                        // println!("")
+                    }else{
+                        // s_line.push_str(&String::from(format!("{:#08b}", &buf[n_i])))
+                        // s_line.push_str(&String::from("asdf"));
                     }
-                    if(o_button.a_n_num != None){
-                        o_button.b_down = o_button.a_n_num.as_ref().unwrap().contains(&n);
-                    }
-                    // println!("{}:{}", o_button.s_name, n);
-                    println!("{:?}", o_button);
-
-                    n_index_a_o_button+=1;
+                    // print!("flags: {:#08b}", &buf[n_i]);
+                    n_i+=1;
                 }
-
-                // let n_u8_triangle_circle_cross_square = a_nu8[8] >> 4;
-                // println!("n_u8_triangle_circle_cross_square: {:08b}", n_u8_triangle_circle_cross_square);
-
-                // let n_u8_arrow_buttons = a_nu8[8] & 0b00001111;
-                // println!("n_u8_arrow_buttons: {:08b}", n_u8_arrow_buttons);
-
-
-
-
+                // println!("flags: {:#018b}", flags);
+                // println!(" - read: {:?}", &buf[..len]);
             }
-            Err(o_error) => {
-
-                println!("could not read from endpoint! {}", o_error);
-            }
+            Err(err) => println!("could not read from endpoint: {}", err),
         }
+        print!("{}[2J", 27 as char);
+
+
+        // match handle.read_interrupt(
+        //     endpoint.address,
+        //     &mut a_nu8,
+        //     timeout
+        // ){
+        //     Ok(len)=>{
+        //         let mut n_index_a_o_button = 0;
+        //         while(n_index_a_o_button < o_controller_dualsense.a_o_button.len()){
+        //             let o_button = &mut o_controller_dualsense.a_o_button[n_index_a_o_button];
+
+        //             let n_byte_index = ((o_button.n_bit_offset) as f64 / 8 as f64) as u32;
+        //             let n_bits_right_shift = o_button.n_bit_offset % 8;
+        //             let n = a_nu8[n_byte_index as usize] >> n_bits_right_shift & (((2 as i32).pow(o_button.n_bits)-1) as u8);
+
+        //             if(o_button.n_bit != None){
+        //                 o_button.b_down = Some((n & (((2 as i32).pow(o_button.n_bit.unwrap().into())) as u8)) != 0);
+        //             }
+        //             if(o_button.a_n_num != None){
+        //                 o_button.b_down = Some(o_button.a_n_num.as_ref().unwrap().contains(&n));
+        //             }
+        //             if(o_button.n_value != None){
+        //                 o_button.n_value = Some(n.into());
+        //             }
+        //             // println!("{}:{}", o_button.s_name, n);
+        //             println!("{:?}", o_button);
+
+        //             n_index_a_o_button+=1;
+        //         }
+
+        //         // let n_u8_triangle_circle_cross_square = a_nu8[8] >> 4;
+        //         // println!("n_u8_triangle_circle_cross_square: {:08b}", n_u8_triangle_circle_cross_square);
+
+        //         // let n_u8_arrow_buttons = a_nu8[8] & 0b00001111;
+        //         // println!("n_u8_arrow_buttons: {:08b}", n_u8_arrow_buttons);
+
+
+
+
+        //     }
+        //     Err(o_error) => {
+
+        //         println!("could not read from endpoint! {}", o_error);
+        //     }
+        // }
 
     }
 
