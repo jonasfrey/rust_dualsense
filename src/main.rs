@@ -1,6 +1,7 @@
 
 use std::time::Duration;
 // use std::String;
+use rand::Rng;
 use rusb::{
     Context, Device, DeviceDescriptor, DeviceHandle, Direction, Result, TransferType, UsbContext,
 };
@@ -127,17 +128,58 @@ fn read_device<T: UsbContext>(
         );
     }
 
-    match find_readable_endpoint(device, device_desc, TransferType::Interrupt) {
-        Some(endpoint) => read_endpoint(handle, endpoint, TransferType::Interrupt),
+    // match find_readable_endpoint(device, device_desc, TransferType::Interrupt) {
+    //     Some(endpoint) => read_endpoint(handle, endpoint, TransferType::Interrupt),
+    //     None => println!("No readable interrupt endpoint"),
+    // }
+
+    // match find_readable_endpoint(device, device_desc, TransferType::Bulk) {
+    //     Some(endpoint) => read_endpoint(handle, endpoint, TransferType::Bulk),
+    //     None => println!("No readable bulk endpoint"),
+    // }
+
+
+    match f_find_readable_endpoint(
+        device,
+        device_desc,
+        TransferType::Interrupt
+    ) {
+
+        Some(endpoint) => f_write_endpoint(handle, endpoint, TransferType::Interrupt),
         None => println!("No readable interrupt endpoint"),
     }
+    Ok(())
+}
+fn f_find_readable_endpoint<T: UsbContext>(
+    device: &mut Device<T>,
+    device_desc: &DeviceDescriptor,
+    transfer_type: TransferType,
+) -> Option<Endpoint> {
+    for n in 0..device_desc.num_configurations() {
+        let config_desc = match device.config_descriptor(n) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
 
-    match find_readable_endpoint(device, device_desc, TransferType::Bulk) {
-        Some(endpoint) => read_endpoint(handle, endpoint, TransferType::Bulk),
-        None => println!("No readable bulk endpoint"),
+        for interface in config_desc.interfaces() {
+            for interface_desc in interface.descriptors() {
+                for endpoint_desc in interface_desc.endpoint_descriptors() {
+                    if endpoint_desc.direction() == Direction::Out
+                        && endpoint_desc.transfer_type() == transfer_type
+                    {
+                        return Some(Endpoint {
+                            config: config_desc.number(),
+                            iface: interface_desc.interface_number(),
+                            setting: interface_desc.setting_number(),
+                            address: endpoint_desc.address(),
+                        });
+                    }
+                }
+            }
+        }
     }
 
-    Ok(())
+    None
 }
 
 fn find_readable_endpoint<T: UsbContext>(
@@ -170,6 +212,117 @@ fn find_readable_endpoint<T: UsbContext>(
     }
 
     None
+}
+
+fn f_write_endpoint<T: UsbContext>(
+    handle: &mut DeviceHandle<T>,
+    endpoint: Endpoint,
+    transfer_type: TransferType,
+) {
+
+    println!("endpoint {:?}", endpoint);
+    println!("Writing to endpoint: {:?}", endpoint);
+
+    let has_kernel_driver = match handle.kernel_driver_active(endpoint.iface) {
+        Ok(true) => {
+            handle.detach_kernel_driver(endpoint.iface).ok();
+            true
+        }
+        _ => false,
+    };
+    let timeout = Duration::from_secs(1);
+    println!(" - kernel driver? {}", has_kernel_driver);
+    // let mut a_nu8 = [0; 64];
+
+    let mut a_n_u8__input = [
+        0x02,0x0c,0x55,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0xfc,0xff,0xff,0xff,0xff,0xff,0xff,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xff,0x00,0x00
+    ];
+    a_n_u8__input[43] = 0;// player led
+    let mut n_time = 0;
+    let mut n_i =0;
+    let mut n_r = 0;
+    let mut n_g = 0;
+    let mut n_b = 0;
+    let mut rng = rand::thread_rng();
+
+    let mut n_index = 0; 
+
+    let mut n_max = 10000;
+    loop{
+        n_time += 1;
+        // println!("________________________________________");
+        n_i = (n_i+1) % 255;
+        n_r = (n_i+1) % 255;
+        n_g = 255 - (n_i+1) % 255;
+        n_b = (n_i+1) % 255;
+        a_n_u8__input[43] = n_i;// player led
+        // a_n_u8__input[45] = n_r;// touchpad led
+        // a_n_u8__input[46] = n_g;// touchpad led
+        // a_n_u8__input[47] = n_b;// touchpad led
+        // if(n_time % 100 == 0){
+        //     n_index+=1;
+        //     for n in 0..47{
+        //         // a_n_u8__input[n] = rng.gen::<u8>();// left L2 motor led
+        //         a_n_u8__input[n_index] = 255;
+        //     }
+        //     println!(" - write: {:?}", &a_n_u8__input[..47]);
+
+
+
+
+        // }
+        let n_wave = ((((n_time % n_max) as f64) * 0.01).sin() * 127.0 + 127.0) as u8;
+        // a_n_u8__input[0] = 255;
+        for n in 0..(n_wave as f64 /2.0) as u8{
+            print!("-");
+        }
+        println!("");
+        // a_n_u8__input[2] = n_i;c
+        a_n_u8__input[0] = 0b00000010; 
+        a_n_u8__input[1] = 0b11111111; 
+        a_n_u8__input[2] = 0b11110111; 
+        a_n_u8__input[3] = n_wave; // motor left
+        a_n_u8__input[4] = n_wave; // motor right
+
+
+        if(n_i % 50 > 25){
+
+            a_n_u8__input[22] = 253;// left L2 motor led
+            a_n_u8__input[23] = rng.gen::<u8>();// left L2 motor led
+            a_n_u8__input[24] = rng.gen::<u8>();// left L2 motor led
+            a_n_u8__input[25] = rng.gen::<u8>();// left L2 motor led
+            a_n_u8__input[26] = rng.gen::<u8>();// left L2 motor led
+            a_n_u8__input[27] = rng.gen::<u8>();// left L2 motor led
+            a_n_u8__input[28] = rng.gen::<u8>();// left L2 motor led
+
+    
+        }else{
+            a_n_u8__input[22] = 0;// left L2 motor led
+            a_n_u8__input[23] = 0;// left L2 motor led
+            a_n_u8__input[24] = 0;// left L2 motor led
+            a_n_u8__input[25] = 0;// left L2 motor led
+            a_n_u8__input[26] = 0;// left L2 motor led
+            a_n_u8__input[27] = 0;// left L2 motor led
+            a_n_u8__input[28] = 0;// left L2 motor led
+        }
+
+        
+        match handle.write_interrupt(endpoint.address, &mut a_n_u8__input, timeout) {
+            Ok(len) => {
+                // println!(" - write: {:?}", &a_n_u8__input[..len]);
+            }
+            Err(err) => {
+                // println!("could not write to endpoint: {}", err),
+            // 
+            }
+        }
+
+
+        
+    }
+
 }
 
 fn read_endpoint<T: UsbContext>(
@@ -288,8 +441,13 @@ fn read_endpoint<T: UsbContext>(
     println!(" - kernel driver? {}", has_kernel_driver);
     let mut a_nu8 = [0; 64];
 
+    let mut a_n_u8__input = [0; 64];
+    a_n_u8__input[43] = 0;// player led
+
     loop{
         println!("________________________________________");
+
+        
 
         match handle.read_interrupt(endpoint.address, &mut a_nu8, timeout) {
             Ok(len) => {

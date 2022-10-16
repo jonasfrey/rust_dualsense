@@ -180,6 +180,7 @@ dependencies = [
 name = "rust_dualsense"
 version = "0.1.0"
 dependencies = [
+ "rand",
  "rusb",
  "time",
  "usb-ids",
